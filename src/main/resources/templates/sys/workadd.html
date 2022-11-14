@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>账单添加</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+          content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8"/>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"/>
+    <link rel="stylesheet" href="/static/css/font.css">
+    <link rel="stylesheet" href="/static/css/xadmin.css">
+    <script type="text/javascript" src="/static/js/index.js"></script>
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/lib/layui/layui.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/static/js/xadmin.js"></script>
+    <style>
+        .layui-form {
+            padding: 20px 50px;
+        }
+    </style>
+</head>
+
+<body>
+<form class="layui-form layui-form-pane">
+    <div class="layui-form-item">
+        <label class="layui-form-label">用户</label>
+        <div class="layui-input-block">
+            <select name="userid" id="userid" lay-verify="required">
+                <option value="">选择用户角色</option>
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">工作名称</label>
+        <div class="layui-input-block">
+            <input type="text" name="workName" lay-verify="required" placeholder="请输入工作名称" value=""
+                   autocomplete="off" class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">时长</label>
+        <div class="layui-input-block">
+            <input type="number" name="workTime" lay-verify="required" placeholder="请输入工作时长" value=""
+                   autocomplete="off" class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">类型</label>
+        <div class="layui-input-block">
+            <select name="workType" id="workType" lay-verify="required">
+                <option value="">工作类型</option>
+                <option value="上班">上班</option>
+                <option value="兼职">兼职</option>
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">工资</label>
+        <div class="layui-input-block">
+            <input type="number" name="earnings" lay-verify="required" placeholder="请输入所得工资" value=""
+                   autocomplete="off" class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">工作方式</label>
+        <div class="layui-input-block">
+            <input type="text" name="manner" lay-verify="required" placeholder="请输入工作方式" value=""
+                   autocomplete="off" class="layui-input">
+        </div>
+    </div>
+
+    <input type="hidden" name="id">
+    <div class="layui-form-item">
+        <button class="layui-btn layui-btn-fluid" lay-submit lay-filter="add" style="display:none;">立即提交</button>
+        <button class="layui-btn layui-btn-fluid" lay-submit lay-filter="update" style="display:none; margin-left: 0;">
+            立即提交
+        </button>
+        <button type="reset" id="resetForm" style="display: none;">重置</button>
+    </div>
+</form>
+<script>
+
+
+    //系统管理员可以添加成员时，可以选择角色-家主
+    if (top.sessionUser.roleid == 2) {
+        $("input[name=houseid]").val(top.sessionUser.houseid);
+        //家主，默认只能添加普通用户
+        $("input[name=roleid]").parent().parent().css("display", "none");
+        $("input[name=roleid]").val(3);
+    } else {
+        $("input[name=houseid]").parent().parent().css("display", "none");
+    }
+    var url = location.href;
+    var realname;
+    // console.log(url);
+    if (url.indexOf("#2") != -1) {
+        $("button[lay-filter=update]").css("display", "block");
+        var index = getQueryString("index");
+        initForm(parent.document.getElementsByTagName("tr")[index]);
+    } else {
+        $("button[lay-filter=add]").css("display", "block");
+    }
+    initRoles();
+    layui.use(['form', 'layer'], function () {
+        $ = layui.jquery;
+        var form = layui.form
+            , layer = layui.layer;
+
+        // form.verify({
+        //     role: function(value, item){ //value：表单的值、item：表单的DOM对象
+        //         if (value == -1){
+        //             return "请选择角色";
+        //         }
+        //     }
+        //     //我们既支持上述函数式的方式，也支持下述数组的形式
+        //     //数组的两个值分别代表：[正则匹配、匹配不符时的提示文字]
+        //     // ,pass: [
+        //     //     /^[\S]{6,12}$/
+        //     //     ,'密码必须6到12位，且不能出现空格'
+        //     // ]
+        // });
+
+        //监听提交
+        form.on('submit(add)', function (data) {
+            // console.log(data);
+            layer.confirm("确认添加？", {title: false, closeBtn: false, skin: 'layui-layer-molv'}, function (layno) {
+                layer.close(layno);
+                $.post("/user/workadd", data.field, function (res) {
+                    if (res.code == 1) {
+                        layer.msg(res.msg, {time: 1000}, function () {
+                            x_admin_close();
+                            parent.getUsers();
+                        });
+                    } else {
+                        layer.msg(res.msg)
+                    }
+                });
+            });
+            return false;   //防止form的action提交
+        });
+        //监听修改
+        form.on('submit(update)', function (data) {
+            // console.log(data.field);
+            layer.confirm("确认修改？", {title: false, closeBtn: false, skin: 'layui-layer-molv'}, function (layno) {
+                layer.close(layno);
+                data.field.password = null;
+                $.post("/user/workupdate", data.field, function (res) {
+                    if (res.code == 1) {
+                        layer.msg(res.msg, {time: 1000}, function () {
+                            x_admin_close();
+                            parent.getUsers();
+                        });
+                    } else {
+                        layer.msg(res.msg)
+                    }
+                });
+            });
+            return false;   //防止form的action提交
+        });
+    });
+
+    function initForm(tr) {
+        // console.log(tr);
+        realname = $(tr).find(":nth-child(2)").html();
+        $("input[name=workName]").val($(tr).find(":nth-child(3)").html());
+        $("input[name=workTime]").val($(tr).find(":nth-child(4)").html());
+        $("input[name=earnings]").val($(tr).find(":nth-child(6)").html());
+        $("input[name=manner]").val($(tr).find(":nth-child(7)").html());
+        $("input[name=id]").val($(tr).find(":nth-child(8)").html());
+        $("#workType").val($(tr).find(":nth-child(5)").html());
+    }
+
+    function initRoles() {
+        var html = "", html2 = "";
+        $.post("/getAllUser", function (res) {
+            if (res.code == 1) {
+                $.each(res.data, function (index, item) {
+                    // if (item.roleid > top.sessionUser.roleid) {
+                        if(item.realname == realname){
+                            html += "<option value=" + item.id + " selected>" + item.realname + "</option>";
+                            html2 += "<dd lay-value=" + item.id + " class='layui-this'>" + item.realname + "</dd>";
+                        }else{
+                            html += "<option value=" + item.id + " >" + item.realname + "</option>";
+                            html2 += "<dd lay-value=" + item.id + " class>" + item.realname + "</dd>";
+                        }
+                    // }
+                });
+                $("#userid").append(html);
+                $(".layui-anim-upbit").append(html2);
+                layui.form.render('select');
+            }
+        })
+    }
+</script>
+</body>
+
+</html>
